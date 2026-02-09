@@ -8,7 +8,7 @@ terraform {
   required_version = ">= 1.2"
   
   backend "s3" {
-    bucket = "bucket-terraform-github-actions"
+    bucket = "deploy-bucket-clase"
     key    = "terraform/state.tfstate"
     region = "us-east-1"
   }
