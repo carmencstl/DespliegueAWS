@@ -26,7 +26,7 @@ resource "aws_instance" "deploy" {
   tags = {
     Name = var.deploy_name
   }
-  user_data                   = file("apache.sh")
+  user_data                   = file("scripts/apache.sh")
   user_data_replace_on_change = true
   iam_instance_profile        = aws_iam_instance_profile.deploy_profile.name
 }
