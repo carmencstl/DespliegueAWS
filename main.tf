@@ -10,7 +10,7 @@ terraform {
 backend "s3" {
   bucket = "deploy-bucket-clase"  
   key    = "terraform/state.tfstate"
-  region = var.region
+  region = "us-east-1"
 }
 }
 provider "aws" {
