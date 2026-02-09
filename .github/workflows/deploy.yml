@@ -1,0 +1,70 @@
+name: Deploy Infrastructure and Application
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+      
+      - name: Terraform Init
+        run: terraform init
+      
+      - name: Terraform Plan
+        run: terraform plan
+      
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
+  deploy:
+    needs: terraform                    # ← Espera a que termine terraform
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy
+          cp index.php deploy/
+          cp appspec.yml deploy/
+          cp -r scripts deploy/
+          cd deploy
+          zip -r ../application.zip .
+      
+      - name: Upload to S3
+        run: |
+          aws s3 cp application.zip s3://bucket-terraform-github-actions/application.zip
+      
+      - name: Deploy with CodeDeploy
+        run: |
+          aws deploy create-deployment \
+            --application-name codedeploy-app \
+            --deployment-group-name codedeploy-deployment-group \
+            --s3-location bucket=bucket-terraform-github-actions,key=application.zip,bundleType=zip \
+            --description "Deployment from GitHub Actions"
