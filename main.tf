@@ -6,13 +6,14 @@ terraform {
     }
   }
   required_version = ">= 1.2"
+  
+  backend "s3" {
+    bucket = "bucket-terraform-github-actions"
+    key    = "terraform/state.tfstate"
+    region = "us-east-1"
+  }
+}
 
-backend "s3" {
-  bucket = "deploy-bucket-clase"  
-  key    = "terraform/state.tfstate"
-  region = "us-east-1"
-}
-}
 provider "aws" {
   region = var.region
 }
@@ -25,9 +26,9 @@ resource "aws_instance" "deploy" {
   tags = {
     Name = var.deploy_name
   }
-  user_data                   = file("scripts/apache.sh")
+  user_data                   = file("apache.sh")
   user_data_replace_on_change = true
-  iam_instance_profile = aws_iam_instance_profile.deploy_profile.name
+  iam_instance_profile        = aws_iam_instance_profile.deploy_profile.name
 }
 
 resource "aws_security_group" "deploy" {
@@ -60,54 +61,13 @@ resource "aws_vpc_security_group_egress_rule" "allow_all_deploy" {
   ip_protocol       = "-1"
 }
 
-
-resource "aws_iam_role" "deploy_role" {
-  name = "ec2-codedeploy-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "deploy_role_attachment" {
-  role       = aws_iam_role.deploy_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforAWSCodeDeploy"
-}
-
-resource "aws_iam_role" "codedeploy_role" {
-  name = "codedeploy-service-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "codedeploy.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "codedeploy_role_attachment" {
-  role       = aws_iam_role.codedeploy_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AWSCodeDeployRole"
+data "aws_iam_role" "lab_role" {
+  name = "LabRole"
 }
 
 resource "aws_iam_instance_profile" "deploy_profile" {
   name = "ec2-codedeploy-profile"
-  role = aws_iam_role.deploy_role.name
+  role = data.aws_iam_role.lab_role.name
 }
 
 resource "aws_codedeploy_app" "app" {
@@ -117,7 +77,7 @@ resource "aws_codedeploy_app" "app" {
 resource "aws_codedeploy_deployment_group" "deployment_group" {
   app_name              = aws_codedeploy_app.app.name
   deployment_group_name = "codedeploy-deployment-group"
-  service_role_arn      = aws_iam_role.codedeploy_role.arn
+  service_role_arn      = data.aws_iam_role.lab_role.arn
 
   ec2_tag_filter {
     type  = "KEY_AND_VALUE"
@@ -125,5 +85,3 @@ resource "aws_codedeploy_deployment_group" "deployment_group" {
     value = var.deploy_name
   }
 }
-
-
