@@ -47,6 +47,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
       
       - name: Create deployment package
@@ -60,12 +61,12 @@ jobs:
       
       - name: Upload to S3
         run: |
-          aws s3 cp application.zip s3://bucket-terraform-github-actions/application.zip
+          aws s3 cp application.zip s3://deploy-bucket-clase/application.zip
       
       - name: Deploy with CodeDeploy
         run: |
           aws deploy create-deployment \
             --application-name codedeploy-app \
             --deployment-group-name codedeploy-deployment-group \
-            --s3-location bucket=bucket-terraform-github-actions,key=application.zip,bundleType=zip \
+            --s3-location bucket=deploy-bucket-clase,key=application.zip,bundleType=zip \
             --description "Deployment from GitHub Actions"
