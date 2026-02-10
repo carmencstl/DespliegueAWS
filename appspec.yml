@@ -1,11 +1,19 @@
 version: 0.0
 os: linux
 files:
-  - source: /
-    destination: /var/www/html
+  - source: /src
+    destination: /var/www/php
 hooks:
+  ApplicationStop:
+    - location: scripts/stop_apache.sh
+      timeout: 300
+      runas: root
+  BeforeInstall:
+    - location: scripts/beforeinstall.sh
+      timeout: 300
+      runas: root
   AfterInstall:
-    - location: scripts/install_dependencies.sh
+    - location: scripts/install_dependencias.sh
       timeout: 300
       runas: root
   ApplicationStart:

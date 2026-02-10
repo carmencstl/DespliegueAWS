@@ -29,7 +29,7 @@ variable "security_name_deploy" {
   default = "grupo_Deploy"
 }
 
-/* -------------DATA------------- */
+
 data "aws_ami" "ubuntu" {
   most_recent = true
 
@@ -43,7 +43,7 @@ data "aws_ami" "ubuntu" {
     values = ["hvm"]
   }
 
-  owners = ["099720109477"] # Canonical
+  owners = ["099720109477"] 
 }
 
 data "aws_vpc" "default" {
